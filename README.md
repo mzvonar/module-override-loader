@@ -36,3 +36,6 @@ module.exports = {
 ```
 
 See [ModuleOverrideWebpackPlugin](https://github.com/mzvonar/module-override-webpack-plugin) for more details.
+
+## Debug
+You can use `debug` library with namespace `css-module-override-webpack-plugin`. `debug` is optional dependency. You have to install it yourself if you want to use it.

@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { getOptions } from 'loader-utils';
 import validateOptions from 'schema-utils';
+import debug from './debug';
 
 const NS = '__moduleOverrides__';
 
@@ -41,21 +42,27 @@ export default function(content, map) {
     const ext = path.extname(filename);
     const name = path.basename(filename, ext);
 
+    debug('Searching for overrides for module', filename);
+    debug('Enabled overrides: [', options.overrides.join(', '), ']');
+
     const promises = [];
     for(let i = 0, length = options.overrides.length; i < length; i += 1) {
         const override = options.overrides[i];
-
-        const overridePath = [dir, path.sep, name, '.', override, ext].join('');
+        const overrideFileName = [name, '.', override, ext].join('');
+        const overridePath = [dir, path.sep, overrideFileName].join('');
 
         const promise = new Promise((resolve, reject) => {
             fs.stat(overridePath, (error) => {
                 if (error) {
                     if (error.code === "ENOENT") {
+                        debug(`Override for ${filename} [${override}] not found`);
                         return resolve();
                     }
 
                     return reject(error);
                 }
+
+                debug(`Override for ${filename} [${override}] found: ${overrideFileName}`);
 
                 // Store module paths loaded by this loader to prevent endless loop
                 if(!this._compilation[NS].loadedOverrides) {
