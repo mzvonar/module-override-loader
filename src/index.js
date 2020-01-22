@@ -20,6 +20,34 @@ const schema = {
     required: ['overrides', 'pattern']
 };
 
+const REGEXP_NAME = /\[name\]/gi;
+const REGEXP_EXT = /\[ext\]/gi;
+const REGEXP_OVERRIDE = /\[override\]/gi;
+const getReplacer = (value, allowEmpty) => {
+    const fn = (match, ...args) => {
+        // last argument in replacer is the entire input string
+        const input = args[args.length - 1];
+        if (value === null || value === undefined) {
+            if (!allowEmpty)
+                throw new Error(
+                    `Path variable ${match} not implemented in this context: ${input}`
+                );
+            return "";
+        } else {
+            return `${value}`;
+        }
+    };
+    return fn;
+};
+
+function getOverrideName({ name, ext, override, pattern }) {
+    let overrideName = pattern.replace(REGEXP_NAME, getReplacer(name));
+    overrideName = overrideName.replace(REGEXP_EXT, getReplacer(ext));
+    overrideName = overrideName.replace(REGEXP_OVERRIDE, getReplacer(override));
+
+    return overrideName;
+}
+
 export default function(content, map) {
     const options = getOptions(this);
     validateOptions(schema, options, 'module-override-loader');
@@ -39,8 +67,12 @@ export default function(content, map) {
 
     const dir = path.dirname(this.resourcePath);
     const filename = path.basename(this.resourcePath);
-    const ext = path.extname(filename);
+    let ext = path.extname(filename);
     const name = path.basename(filename, ext);
+
+    if(ext && ext[0] === '.') {
+        ext = ext.substring(1);
+    }
 
     debug('Searching for overrides for module', filename);
     debug('Enabled overrides: [', options.overrides.join(', '), ']');
@@ -48,8 +80,8 @@ export default function(content, map) {
     const promises = [];
     for(let i = 0, length = options.overrides.length; i < length; i += 1) {
         const override = options.overrides[i];
-        const overrideFileName = [name, '.', override, ext].join('');
-        const overridePath = [dir, path.sep, overrideFileName].join('');
+        const overrideFileName = getOverrideName({ name, ext, override, pattern: options.pattern });
+        const overridePath = path.join(dir, overrideFileName);
 
         const promise = new Promise((resolve, reject) => {
             fs.stat(overridePath, (error) => {
