@@ -1,6 +1,6 @@
 {
   "name": "module-override-loader",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Load overrides for modules",
   "main": "dist/index.js",
   "module": "src/index.js",
